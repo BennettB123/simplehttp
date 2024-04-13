@@ -1,4 +1,4 @@
-package main
+package simplehttp
 
 import (
 	"fmt"
@@ -9,15 +9,13 @@ import (
 	"strings"
 )
 
-const PORT int = 3030
-
-func main() {
-	listener, err := net.Listen("tcp4", ":"+strconv.Itoa(PORT))
+func StartServer(port int) {
+	listener, err := net.Listen("tcp4", ":"+strconv.Itoa(port))
 	if err != nil {
 		log.Fatal("Failed to open tcp listener: ", err)
 	}
 
-	fmt.Println("Listening on port", PORT)
+	fmt.Println("Listening on port", port)
 
 	for {
 		fmt.Print("Waiting for connection...\n\n")
