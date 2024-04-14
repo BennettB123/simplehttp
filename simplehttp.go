@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	"strings"
 )
 
 func StartServer(port int) {
@@ -29,9 +28,11 @@ func StartServer(port int) {
 		// read data in chunks of 1kB
 		tmp := make([]byte, 1024)
 		data := make([]byte, 0)
+		packet := packet{}
 		length := 0
 
 		for {
+			// TODO: add timeout here and also for the whole loop
 			n, err := conn.Read(tmp)
 			if err != nil {
 				if err != io.EOF {
@@ -41,18 +42,21 @@ func StartServer(port int) {
 				break
 			}
 
-			fmt.Print(string(tmp))
-
 			data = append(data, tmp[:n]...)
 			length += n
 			clear(tmp)
 
 			// check if we have a full packet yet
-			fullPacket, _ := isFullPacket(string(data))
-			if fullPacket {
-				break
+			packet, err = parsePacket(string(data))
+			if err != nil {
+				// TODO: don't continue forever. Set a maximum packet size?
+				continue
 			}
+
+			break
 		}
+
+		fmt.Print(packet.buildString())
 
 		// send a response
 		conn.Write([]byte("HTTP/1.0 200 OK\r\n" +
@@ -76,57 +80,4 @@ func StartServer(port int) {
 		fmt.Print("\n=====================================================\n\n")
 	}
 
-}
-
-func isFullPacket(message string) (bool, error) {
-	headerStart := strings.Index(message, "\r\n")
-	headerEnd := strings.Index(message, "\r\n\r\n")
-	if headerEnd > -1 {
-		// if we got here, we have all the headers
-		rawHeaders := strings.TrimSpace(message[headerStart:headerEnd])
-		headers, err := parseHeaders(rawHeaders)
-
-		if err != nil {
-			return false, err
-		}
-
-		// if no 'Content-Length' header, packet is complete
-		contentLengthStr, exists := headers["Content-Length"]
-		if !exists {
-			return true, nil
-		}
-
-		// do we have enough content yet?
-		contentLength, err := strconv.Atoi(contentLengthStr)
-		if err != nil {
-			return false, fmt.Errorf("invalid value in Content-Length header: `%s`", contentLengthStr)
-		}
-
-		content := message[headerEnd+4:] // +4 strips off the \r\n\r\n
-		if len(content) < contentLength {
-			return false, nil
-		}
-
-		return true, nil
-	}
-	return false, nil
-}
-
-func parseHeaders(message string) (map[string]string, error) {
-	headers := make(map[string]string)
-	lines := strings.Split(message, "\r\n")
-
-	for _, line := range lines {
-		split := strings.SplitN(line, ":", 2)
-
-		if len(split) != 2 {
-			return nil, fmt.Errorf("could not parse the following header: `%s`", line)
-		}
-
-		field := strings.TrimSpace(split[0])
-		value := strings.TrimSpace(split[1])
-		headers[field] = value
-	}
-
-	return headers, nil
 }
