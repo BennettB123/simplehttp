@@ -1,9 +1,18 @@
 package main
 
-import "github.com/BennettB123/simplehttp"
+import (
+	"fmt"
 
-const PORT int = 3030
+	"github.com/BennettB123/simplehttp"
+)
+
+const PORT uint16 = 3030
 
 func main() {
-	simplehttp.StartServer(PORT)
+	server := simplehttp.NewServer(PORT)
+
+	err := server.Start()
+	if err != nil {
+		fmt.Println("There was an error starting the server:", err)
+	}
 }

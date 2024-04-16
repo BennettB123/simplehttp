@@ -3,62 +3,43 @@ package simplehttp
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
-	"strconv"
 )
 
-func StartServer(port int) {
-	listener, err := net.Listen("tcp4", ":"+strconv.Itoa(port))
-	if err != nil {
-		log.Fatal("Failed to open tcp listener: ", err)
-	}
+type Server struct {
+	Port uint16
+}
 
-	fmt.Println("Listening on port", port)
-
-	for {
-		fmt.Print("Waiting for connection...\n")
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Fatal("Failed to accept incoming connection: ", err)
-		}
-
-		go handleConnection(conn)
+func NewServer(port uint16) Server {
+	return Server{
+		Port: port,
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
+func (s *Server) Start() error {
+	listener, err := net.Listen("tcp4", fmt.Sprintf(":%d", s.Port))
+	if err != nil {
+		return fmt.Errorf("failed to open tcp listener: %s", err)
+	}
 
-	// read data in chunks of 1kB
-	tmp := make([]byte, 1024)
-	data := make([]byte, 0)
-	packet := packet{}
-	length := 0
+	fmt.Println("Listening on port", s.Port)
 
 	for {
-		// TODO: add timeout here and also for the whole loop
-		n, err := conn.Read(tmp)
+		conn, err := listener.Accept()
 		if err != nil {
-			if err != io.EOF {
-				fmt.Println("Read error -", err)
-			}
-			fmt.Println("here in EOF")
-			break
+			fmt.Println("Failed to accept incoming connection: ", err)
 		}
 
-		data = append(data, tmp[:n]...)
-		length += n
-		clear(tmp)
+		go s.handleConnection(conn)
+	}
+}
 
-		// check if we have a full packet yet
-		packet, err = parsePacket(string(data))
-		if err != nil {
-			// TODO: don't continue forever. Set a maximum packet size?
-			continue
-		}
+func (s *Server) handleConnection(conn net.Conn) {
+	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
 
-		break
+	packet, err := readPacket(conn)
+	if err != nil {
+		fmt.Println("Unable to read a packet from the connection: ", err)
 	}
 
 	fmt.Print(packet.buildString())
@@ -83,4 +64,44 @@ func handleConnection(conn net.Conn) {
 	conn.Close()
 
 	fmt.Print("\n=====================================================\n\n")
+}
+
+func readPacket(conn net.Conn) (packet, error) {
+	// read data in chunks of 1kB
+	tmp := make([]byte, 1024)
+	data := make([]byte, 0)
+	pack := packet{}
+	length := 0
+
+	for {
+		// TODO: add timeout here and also for the whole loop
+		n, err := conn.Read(tmp)
+		if err != nil {
+			if err != io.EOF {
+				return packet{}, err
+			}
+
+			// if we get an EOF, check if we have a full packet then return
+			pack, err = parsePacket(string(data))
+			if err != nil {
+				return packet{}, fmt.Errorf("got an EOF from the client before a full packet was received")
+			}
+			return pack, nil
+		}
+
+		data = append(data, tmp[:n]...)
+		length += n
+		clear(tmp)
+
+		// check if we have a full packet yet
+		pack, err = parsePacket(string(data))
+		if err != nil {
+			// TODO: don't continue forever. Set a maximum packet size?
+			continue
+		}
+
+		break
+	}
+
+	return pack, nil
 }
