@@ -1,18 +1,32 @@
 package simplehttp
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
 )
 
 type Server struct {
-	Port uint16
+	Port      uint16
+	callbacks map[uint]map[string]func() //TODO: extract this into a new object?
+	// ex. [GET]["/"] = func(...)
+	// ex. [GET]["/login"] = func(...)
+	// ex. [POST]["/login"] = func(...)
+
 }
 
 func NewServer(port uint16) Server {
+	// initialize all callback maps
+	callbacks := make(map[uint]map[string]func())
+	callbacks[GET] = make(map[string]func())
+	callbacks[POST] = make(map[string]func())
+	callbacks[PUT] = make(map[string]func())
+	callbacks[DELETE] = make(map[string]func())
+
 	return Server{
-		Port: port,
+		Port:      port,
+		callbacks: callbacks,
 	}
 }
 
@@ -36,13 +50,24 @@ func (s *Server) Start() error {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
+	defer conn.Close()
 
 	packet, err := readPacket(conn)
 	if err != nil {
-		fmt.Println("Unable to read a packet from the connection: ", err)
+		fmt.Print("Unable to read a packet from the connection: ", err)
+		fmt.Print("\n=====================================================\n\n")
+		return
 	}
 
 	fmt.Print(packet.buildString())
+
+	// call end-user's callback
+	verb := packet.startLine.verb
+	path := packet.startLine.getPath()
+	callback, exists := s.callbacks[verb][path]
+	if exists {
+		callback()
+	}
 
 	// send a response
 	conn.Write([]byte("HTTP/1.0 200 OK\r\n" +
@@ -60,8 +85,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 		"  <h1>Hello, world!</h1>\r\n" +
 		"</body>\r\n" +
 		"</html>\r\n"))
-
-	conn.Close()
 
 	fmt.Print("\n=====================================================\n\n")
 }
@@ -81,7 +104,7 @@ func readPacket(conn net.Conn) (packet, error) {
 				return packet{}, err
 			}
 
-			// if we get an EOF, check if we have a full packet then return
+			// if EOF, check if we have a full packet before returning
 			pack, err = parsePacket(string(data))
 			if err != nil {
 				return packet{}, fmt.Errorf("got an EOF from the client before a full packet was received")
@@ -97,11 +120,43 @@ func readPacket(conn net.Conn) (packet, error) {
 		pack, err = parsePacket(string(data))
 		if err != nil {
 			// TODO: don't continue forever. Set a maximum packet size?
-			continue
+			incompleteErr := &incompletePacket{}
+			if errors.As(err, &incompleteErr) {
+				continue
+			}
+
+			return packet{}, err
 		}
 
 		break
 	}
 
 	return pack, nil
+}
+
+// Public methods to add callbacks
+func (s *Server) Get(path string, callback func()) error {
+	return s.addCallback(GET, path, callback)
+}
+
+func (s *Server) Post(path string, callback func()) error {
+	return s.addCallback(POST, path, callback)
+}
+
+func (s *Server) Put(path string, callback func()) error {
+	return s.addCallback(PUT, path, callback)
+}
+
+func (s *Server) Delete(path string, callback func()) error {
+	return s.addCallback(DELETE, path, callback)
+}
+
+func (s *Server) addCallback(method uint, path string, callback func()) error {
+	_, exists := s.callbacks[method][path]
+	if exists {
+		return fmt.Errorf("%s callback with path '%s' has already been registered", getVerbString(method), path)
+	}
+
+	s.callbacks[method][path] = callback
+	return nil
 }
