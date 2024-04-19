@@ -52,18 +52,18 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
 	defer conn.Close()
 
-	packet, err := readPacket(conn)
+	message, err := readMessage(conn)
 	if err != nil {
-		fmt.Print("Unable to read a packet from the connection: ", err)
+		fmt.Print("Unable to read message from the connection: ", err)
 		fmt.Print("\n=====================================================\n\n")
 		return
 	}
 
-	fmt.Print(packet.buildString())
+	fmt.Print(message.buildString())
 
 	// call end-user's callback
-	verb := packet.startLine.verb
-	path := packet.startLine.getPath()
+	verb := message.requestLine.verb
+	path := message.requestLine.getPath()
 	callback, exists := s.callbacks[verb][path]
 	if exists {
 		callback()
@@ -89,11 +89,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Print("\n=====================================================\n\n")
 }
 
-func readPacket(conn net.Conn) (packet, error) {
+func readMessage(conn net.Conn) (httpMessage, error) {
 	// read data in chunks of 1kB
 	tmp := make([]byte, 1024)
 	data := make([]byte, 0)
-	pack := packet{}
+	message := httpMessage{}
 	length := 0
 
 	for {
@@ -101,37 +101,37 @@ func readPacket(conn net.Conn) (packet, error) {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
-				return packet{}, err
+				return httpMessage{}, err
 			}
 
-			// if EOF, check if we have a full packet before returning
-			pack, err = parsePacket(string(data))
+			// if EOF, check if we have a full message before returning
+			message, err = parseHttpMessage(string(data))
 			if err != nil {
-				return packet{}, fmt.Errorf("got an EOF from the client before a full packet was received")
+				return httpMessage{}, fmt.Errorf("got an EOF from the client before a full message was received")
 			}
-			return pack, nil
+			return message, nil
 		}
 
 		data = append(data, tmp[:n]...)
 		length += n
 		clear(tmp)
 
-		// check if we have a full packet yet
-		pack, err = parsePacket(string(data))
+		// check if we have a full http message yet
+		message, err = parseHttpMessage(string(data))
 		if err != nil {
-			// TODO: don't continue forever. Set a maximum packet size?
-			incompleteErr := &incompletePacket{}
+			// TODO: don't continue forever. Set a maximum message size?
+			incompleteErr := &incompleteMessage{}
 			if errors.As(err, &incompleteErr) {
 				continue
 			}
 
-			return packet{}, err
+			return httpMessage{}, err
 		}
 
 		break
 	}
 
-	return pack, nil
+	return message, nil
 }
 
 // Public methods to add callbacks
