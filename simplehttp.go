@@ -8,25 +8,14 @@ import (
 )
 
 type Server struct {
-	Port      uint16
-	callbacks map[uint]map[string]func() //TODO: extract this into a new object?
-	// ex. [GET]["/"] = func(...)
-	// ex. [GET]["/login"] = func(...)
-	// ex. [POST]["/login"] = func(...)
-
+	Port        uint16
+	callbackMap callbackMap
 }
 
 func NewServer(port uint16) Server {
-	// initialize all callback maps
-	callbacks := make(map[uint]map[string]func())
-	callbacks[GET] = make(map[string]func())
-	callbacks[POST] = make(map[string]func())
-	callbacks[PUT] = make(map[string]func())
-	callbacks[DELETE] = make(map[string]func())
-
 	return Server{
-		Port:      port,
-		callbacks: callbacks,
+		Port:        port,
+		callbackMap: createCallbackMap(),
 	}
 }
 
@@ -64,9 +53,9 @@ func (s *Server) handleConnection(conn net.Conn) {
 	// call end-user's callback
 	verb := request.requestLine.verb
 	path := request.requestLine.getPath()
-	callback, exists := s.callbacks[verb][path]
-	if exists {
-		callback()
+	err = s.callbackMap.invokeCallback(verb, path)
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	// send a response
@@ -134,29 +123,19 @@ func readRequest(conn net.Conn) (request, error) {
 	return message, nil
 }
 
-// Public methods to add callbacks
-func (s *Server) Get(path string, callback func()) error {
-	return s.addCallback(GET, path, callback)
+// Public methods to register callbacks
+func (s *Server) Get(path string, callback CallbackFunc) error {
+	return s.callbackMap.registerCallback(GET, path, callback)
 }
 
-func (s *Server) Post(path string, callback func()) error {
-	return s.addCallback(POST, path, callback)
+func (s *Server) Post(path string, callback CallbackFunc) error {
+	return s.callbackMap.registerCallback(POST, path, callback)
 }
 
-func (s *Server) Put(path string, callback func()) error {
-	return s.addCallback(PUT, path, callback)
+func (s *Server) Put(path string, callback CallbackFunc) error {
+	return s.callbackMap.registerCallback(PUT, path, callback)
 }
 
-func (s *Server) Delete(path string, callback func()) error {
-	return s.addCallback(DELETE, path, callback)
-}
-
-func (s *Server) addCallback(method uint, path string, callback func()) error {
-	_, exists := s.callbacks[method][path]
-	if exists {
-		return fmt.Errorf("%s callback with path '%s' has already been registered", getVerbString(method), path)
-	}
-
-	s.callbacks[method][path] = callback
-	return nil
+func (s *Server) Delete(path string, callback CallbackFunc) error {
+	return s.callbackMap.registerCallback(DELETE, path, callback)
 }
