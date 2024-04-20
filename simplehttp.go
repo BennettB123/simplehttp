@@ -52,18 +52,18 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
 	defer conn.Close()
 
-	message, err := readMessage(conn)
+	request, err := readRequest(conn)
 	if err != nil {
 		fmt.Print("Unable to read message from the connection: ", err)
 		fmt.Print("\n=====================================================\n\n")
 		return
 	}
 
-	fmt.Print(message.buildString())
+	fmt.Print(request.buildString())
 
 	// call end-user's callback
-	verb := message.requestLine.verb
-	path := message.requestLine.getPath()
+	verb := request.requestLine.verb
+	path := request.requestLine.getPath()
 	callback, exists := s.callbacks[verb][path]
 	if exists {
 		callback()
@@ -89,11 +89,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Print("\n=====================================================\n\n")
 }
 
-func readMessage(conn net.Conn) (httpMessage, error) {
+func readRequest(conn net.Conn) (request, error) {
 	// read data in chunks of 1kB
 	tmp := make([]byte, 1024)
 	data := make([]byte, 0)
-	message := httpMessage{}
+	message := request{}
 	length := 0
 
 	for {
@@ -101,13 +101,13 @@ func readMessage(conn net.Conn) (httpMessage, error) {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
-				return httpMessage{}, err
+				return request{}, err
 			}
 
 			// if EOF, check if we have a full message before returning
-			message, err = parseHttpMessage(string(data))
+			message, err = parseRequest(string(data))
 			if err != nil {
-				return httpMessage{}, fmt.Errorf("got an EOF from the client before a full message was received")
+				return request{}, fmt.Errorf("got an EOF from the client before a full message was received")
 			}
 			return message, nil
 		}
@@ -117,7 +117,7 @@ func readMessage(conn net.Conn) (httpMessage, error) {
 		clear(tmp)
 
 		// check if we have a full http message yet
-		message, err = parseHttpMessage(string(data))
+		message, err = parseRequest(string(data))
 		if err != nil {
 			// TODO: don't continue forever. Set a maximum message size?
 			incompleteErr := &incompleteMessage{}
@@ -125,7 +125,7 @@ func readMessage(conn net.Conn) (httpMessage, error) {
 				continue
 			}
 
-			return httpMessage{}, err
+			return request{}, err
 		}
 
 		break
