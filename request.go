@@ -55,12 +55,14 @@ func parseRequest(rawMessage string) (request, error) {
 
 	contentLength, err := strconv.Atoi(contentLengthStr)
 	if err != nil {
-		return request{}, &invalidMessage{fmt.Sprintf("invalid value in Content-Length header: `%s`", contentLengthStr)}
+		return request{}, &invalidMessage{fmt.Sprintf(
+			"invalid value in Content-Length header: `%s`", contentLengthStr)}
 	}
 
 	content := rawMessage[headerEnd+len(DoubleLineEnd):]
 	if len(content) < contentLength {
-		return request{}, &incompleteMessage{fmt.Sprintf("expecting %d bytes in body, only received %d", contentLength, len(content))}
+		return request{}, &incompleteMessage{fmt.Sprintf(
+			"expecting %d bytes in body, only received %d", contentLength, len(content))}
 	}
 
 	body := content[:contentLength]
@@ -84,7 +86,8 @@ type requestLine struct {
 }
 
 func (s requestLine) String() string {
-	return fmt.Sprintf("%s %s %s", getHttpMethodString(s.method), s.uri.String(), s.httpversion)
+	return fmt.Sprintf("%s %s %s",
+		getHttpMethodString(s.method), s.uri.String(), s.httpversion)
 }
 
 func (s requestLine) getPath() string {

@@ -96,7 +96,8 @@ func readRequest(conn net.Conn) (request, error) {
 			// if EOF, check if we have a full message before returning
 			message, err = parseRequest(string(data))
 			if err != nil {
-				return request{}, fmt.Errorf("got an EOF from the client before a full message was received")
+				return request{}, fmt.Errorf(
+					"got an EOF from the client before a full message was received")
 			}
 			return message, nil
 		}
