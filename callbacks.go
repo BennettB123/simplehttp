@@ -4,14 +4,14 @@ import "fmt"
 
 // Potential errors when dealing with callbacks
 type CallbackRuntimeError struct {
-	innerErr error
-	HttpVerb uint
-	Path     string
+	innerErr   error
+	HttpMethod uint
+	Path       string
 }
 
 func (err CallbackRuntimeError) Error() string {
 	return fmt.Sprintf("an error occurred while invoking a callback (%s with path '%s'): %s",
-		getVerbString(err.HttpVerb), err.Path, err.innerErr.Error())
+		getHttpMethodString(err.HttpMethod), err.Path, err.innerErr.Error())
 }
 
 func newCallbackRuntimeError(err error) error {
@@ -21,35 +21,35 @@ func newCallbackRuntimeError(err error) error {
 }
 
 type CallbackAlreadyRegisteredError struct {
-	HttpVerb uint
-	Path     string
+	HttpMethod uint
+	Path       string
 }
 
 func (err CallbackAlreadyRegisteredError) Error() string {
 	return fmt.Sprintf("%s callback with path '%s' has already been registered",
-		getVerbString(err.HttpVerb), err.Path)
+		getHttpMethodString(err.HttpMethod), err.Path)
 }
 
-func newCallbackAlreadyRegisteredError(httpVerb uint, path string) error {
+func newCallbackAlreadyRegisteredError(httpMethod uint, path string) error {
 	return CallbackAlreadyRegisteredError{
-		httpVerb,
+		httpMethod,
 		path,
 	}
 }
 
 type CallbackNotRegisteredError struct {
-	HttpVerb uint
-	Path     string
+	httpMethod uint
+	Path       string
 }
 
 func (err CallbackNotRegisteredError) Error() string {
 	return fmt.Sprintf("%s callback with path '%s' has not been registered",
-		getVerbString(err.HttpVerb), err.Path)
+		getHttpMethodString(err.httpMethod), err.Path)
 }
 
-func newCallbackNotRegisteredError(httpVerb uint, path string) error {
+func newCallbackNotRegisteredError(httpMethod uint, path string) error {
 	return CallbackNotRegisteredError{
-		httpVerb,
+		httpMethod,
 		path,
 	}
 }
@@ -65,10 +65,10 @@ type callbackMap struct {
 
 func createCallbackMap() callbackMap {
 	callbacks := make(map[uint]map[string]CallbackFunc)
-	callbacks[GET] = make(map[string]CallbackFunc)
-	callbacks[POST] = make(map[string]CallbackFunc)
-	callbacks[PUT] = make(map[string]CallbackFunc)
-	callbacks[DELETE] = make(map[string]CallbackFunc)
+	callbacks[get] = make(map[string]CallbackFunc)
+	callbacks[post] = make(map[string]CallbackFunc)
+	callbacks[put] = make(map[string]CallbackFunc)
+	callbacks[delete] = make(map[string]CallbackFunc)
 	return callbackMap{
 		callbacks,
 	}

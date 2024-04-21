@@ -51,9 +51,9 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Print(request.buildString())
 
 	// call end-user's callback
-	verb := request.requestLine.verb
+	method := request.requestLine.method
 	path := request.requestLine.getPath()
-	err = s.callbackMap.invokeCallback(verb, path)
+	err = s.callbackMap.invokeCallback(method, path)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -125,17 +125,17 @@ func readRequest(conn net.Conn) (request, error) {
 
 // Public methods to register callbacks
 func (s *Server) Get(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(GET, path, callback)
+	return s.callbackMap.registerCallback(get, path, callback)
 }
 
 func (s *Server) Post(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(POST, path, callback)
+	return s.callbackMap.registerCallback(post, path, callback)
 }
 
 func (s *Server) Put(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(PUT, path, callback)
+	return s.callbackMap.registerCallback(put, path, callback)
 }
 
 func (s *Server) Delete(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(DELETE, path, callback)
+	return s.callbackMap.registerCallback(delete, path, callback)
 }

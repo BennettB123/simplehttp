@@ -78,13 +78,13 @@ func parseRequest(rawMessage string) (request, error) {
 ////// requestLine ///////
 
 type requestLine struct {
-	verb        uint
+	method      uint
 	uri         url.URL
 	httpversion string
 }
 
 func (s requestLine) String() string {
-	return fmt.Sprintf("%s %s %s", getVerbString(s.verb), s.uri.String(), s.httpversion)
+	return fmt.Sprintf("%s %s %s", getHttpMethodString(s.method), s.uri.String(), s.httpversion)
 }
 
 func (s requestLine) getPath() string {
@@ -97,7 +97,7 @@ func parseRequestLine(content string) (requestLine, error) {
 		return requestLine{}, fmt.Errorf("unable to parse HTTP request-line")
 	}
 
-	verb, err := parseHttpVerb(strings.TrimSpace(split[0]))
+	method, err := parseHttpMethod(strings.TrimSpace(split[0]))
 	if err != nil {
 		return requestLine{}, err
 	}
@@ -108,7 +108,7 @@ func parseRequestLine(content string) (requestLine, error) {
 	}
 
 	return requestLine{
-		verb:        verb,
+		method:      method,
 		uri:         *uri,
 		httpversion: strings.TrimSpace(split[2]),
 	}, nil

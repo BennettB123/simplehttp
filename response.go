@@ -6,7 +6,7 @@ type response struct {
 }
 
 type statusLine struct {
-	httpversion  string
+	httpVersion  string
 	statusCode   uint
 	reasonPhrase string
 }
