@@ -59,13 +59,13 @@ func (r *Response) SetHeader(key string, value string) error {
 	return nil
 }
 
-func (r *Response) SendHtml(html string) {
+func (r *Response) SetHtml(html string) {
 	r.body = html
 	r.Headers["Content-Length"] = strconv.Itoa(len(html))
 	r.Headers["Content-Type"] = "text/html"
 }
 
-func (r *Response) SendJson(obj any) error {
+func (r *Response) SetJson(obj any) error {
 	body := ""
 
 	// TODO: find a better way to check if it's already a string

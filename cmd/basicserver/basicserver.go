@@ -15,7 +15,7 @@ func main() {
 	server.Get("/", func(req simplehttp.Request, res *simplehttp.Response) error {
 		fmt.Println("we're in the GET / callback!")
 
-		res.SendHtml("<h1>Hello, world!</h1>")
+		res.SetHtml("<h1>Hello, world!</h1>")
 		res.SetHeader("Custom-Header", "custom-header-value")
 		return nil
 	})
@@ -35,7 +35,7 @@ func main() {
 			return err
 		}
 
-		res.SendJson(string(myJson))
+		res.SetJson(string(myJson))
 		return nil
 	})
 
@@ -49,7 +49,7 @@ func main() {
 		}
 
 		myUser := User{"foo", 42, "baz@email.com"}
-		res.SendJson(myUser)
+		res.SetJson(myUser)
 		return nil
 	})
 
