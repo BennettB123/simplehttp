@@ -53,6 +53,22 @@ func main() {
 		return nil
 	})
 
+	server.Get("/file", func(req simplehttp.Request, res *simplehttp.Response) error {
+		fmt.Println("we're in the GET /htmlfile callback!")
+
+		err := res.SetFile("./files/NON-EXISTENT-FILE")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		err = res.SetFile("./files/index.html")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return nil
+	})
+
 	server.Post("/", func(req simplehttp.Request, res *simplehttp.Response) error {
 		fmt.Println("we're in the POST / callback!")
 

@@ -3,7 +3,10 @@ package simplehttp
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +43,12 @@ func newResponse() Response {
 		Headers:      headers,
 		body:         "",
 	}
+}
+
+func new500StatusResponse() Response {
+	res := newResponse()
+	res.SetStatus(500)
+	return res
 }
 
 func (r *Response) SetHeader(key string, value string) error {
@@ -83,6 +92,42 @@ func (r *Response) SetJson(obj any) error {
 	r.body = body
 	r.Headers["Content-Length"] = strconv.Itoa(len(body))
 	r.Headers["Content-Type"] = "application/json"
+	return nil
+}
+
+func (r *Response) SetFile(path string) error {
+	fileContents, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	extension := filepath.Ext(path)
+	if extension == "" {
+		return fmt.Errorf("unable to determine a Content-Type because the file does not have an extension")
+	}
+
+	contentType := mime.TypeByExtension(extension)
+	if contentType == "" {
+		return fmt.Errorf("unable to determine a Content-Type based on the file's extension")
+	}
+
+	body := string(fileContents)
+	r.body = body
+	r.Headers["Content-Length"] = strconv.Itoa(len(body))
+	r.Headers["Content-Type"] = contentType
+	return nil
+}
+
+func (r *Response) SetFileWithContentType(path string, contentType string) error {
+	fileContents, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	body := string(fileContents)
+	r.body = body
+	r.Headers["Content-Length"] = strconv.Itoa(len(body))
+	r.Headers["Content-Type"] = contentType
 	return nil
 }
 

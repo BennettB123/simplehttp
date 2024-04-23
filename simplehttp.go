@@ -58,12 +58,13 @@ func (s *Server) handleConnection(conn net.Conn) {
 	err = s.callbackMap.invokeCallback(method, path, request, &response)
 	if err != nil {
 		fmt.Println(err)
+		errorResponse := new500StatusResponse()
+		conn.Write([]byte(errorResponse.String()))
+		return
 	}
 
 	// send a response
 	conn.Write([]byte(response.String()))
-
-	fmt.Print("\n=====================================================\n\n")
 }
 
 func readRequest(conn net.Conn) (Request, error) {
