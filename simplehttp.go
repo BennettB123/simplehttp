@@ -15,7 +15,7 @@ type Server struct {
 func NewServer(port uint16) Server {
 	return Server{
 		Port:        port,
-		callbackMap: createCallbackMap(),
+		callbackMap: newCallbackMap(),
 	}
 }
 
@@ -48,41 +48,29 @@ func (s *Server) handleConnection(conn net.Conn) {
 		return
 	}
 
-	fmt.Print(request.buildString())
+	fmt.Print(request)
+
+	response := newResponse()
 
 	// call end-user's callback
-	method := request.requestLine.method
-	path := request.requestLine.getPath()
-	err = s.callbackMap.invokeCallback(method, path)
+	method := request.Method
+	path := request.getPath()
+	err = s.callbackMap.invokeCallback(method, path, request, &response)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	// send a response
-	conn.Write([]byte("HTTP/1.0 200 OK\r\n" +
-		"Content-Type: text/html; charset=UTF-8\r\n" +
-		"Content-Length: 237\r\n" +
-		"\r\n" +
-		"<!DOCTYPE html>\r\n" +
-		"<html lang=\"en\">\r\n" +
-		"<head>\r\n" +
-		"  <meta charset=\"UTF-8\" />\r\n" +
-		"  <title>Hello, world!</title>\r\n" +
-		"  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\r\n" +
-		"</head>\r\n" +
-		"<body>\r\n" +
-		"  <h1>Hello, world!</h1>\r\n" +
-		"</body>\r\n" +
-		"</html>\r\n"))
+	conn.Write([]byte(response.String()))
 
 	fmt.Print("\n=====================================================\n\n")
 }
 
-func readRequest(conn net.Conn) (request, error) {
+func readRequest(conn net.Conn) (Request, error) {
 	// read data in chunks of 1kB
 	tmp := make([]byte, 1024)
 	data := make([]byte, 0)
-	message := request{}
+	message := Request{}
 	length := 0
 
 	for {
@@ -90,13 +78,13 @@ func readRequest(conn net.Conn) (request, error) {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
-				return request{}, err
+				return Request{}, err
 			}
 
 			// if EOF, check if we have a full message before returning
 			message, err = parseRequest(string(data))
 			if err != nil {
-				return request{}, fmt.Errorf(
+				return Request{}, fmt.Errorf(
 					"got an EOF from the client before a full message was received")
 			}
 			return message, nil
@@ -115,7 +103,7 @@ func readRequest(conn net.Conn) (request, error) {
 				continue
 			}
 
-			return request{}, err
+			return Request{}, err
 		}
 
 		break

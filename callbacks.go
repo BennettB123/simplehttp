@@ -54,7 +54,7 @@ func newCallbackNotRegisteredError(httpMethod uint, path string) error {
 	}
 }
 
-type CallbackFunc = func() error
+type CallbackFunc = func(Request, *Response) error
 
 type callbackMap struct {
 	callbacks map[uint]map[string]CallbackFunc
@@ -63,7 +63,7 @@ type callbackMap struct {
 	// ex. [POST]["/login"] = func(...)
 }
 
-func createCallbackMap() callbackMap {
+func newCallbackMap() callbackMap {
 	callbacks := make(map[uint]map[string]CallbackFunc)
 	callbacks[get] = make(map[string]CallbackFunc)
 	callbacks[post] = make(map[string]CallbackFunc)
@@ -84,13 +84,13 @@ func (cbm *callbackMap) registerCallback(method uint, path string, callback Call
 	return nil
 }
 
-func (cbm *callbackMap) invokeCallback(method uint, path string) error {
+func (cbm *callbackMap) invokeCallback(method uint, path string, req Request, res *Response) error {
 	callback, exists := cbm.callbacks[method][path]
 	if !exists {
 		return newCallbackNotRegisteredError(method, path)
 	}
 
-	err := callback()
+	err := callback(req, res)
 	if err != nil {
 		return newCallbackRuntimeError(err)
 	}
