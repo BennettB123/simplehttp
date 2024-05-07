@@ -14,17 +14,17 @@ import (
 
 type Response struct {
 	httpVersion  string
-	StatusCode   uint
-	ReasonPhrase string
-	Headers      Headers
-	body         string // private so we can ensure Content-Length is set correctly
+	statusCode   uint
+	reasonPhrase string
+	headers      headers
+	body         string
 }
 
 func (r Response) String() string {
-	statusLine := fmt.Sprintf("%s %d %s", r.httpVersion, r.StatusCode, r.ReasonPhrase)
+	statusLine := fmt.Sprintf("%s %d %s", r.httpVersion, r.statusCode, r.reasonPhrase)
 	return statusLine +
 		lineEnd +
-		r.Headers.String() +
+		r.headers.String() +
 		doubleLineEnd +
 		r.body
 }
@@ -38,9 +38,9 @@ func newResponse() Response {
 
 	return Response{
 		httpVersion:  "HTTP/1.0",
-		StatusCode:   200,
-		ReasonPhrase: getReasonPhrase(200),
-		Headers:      headers,
+		statusCode:   200,
+		reasonPhrase: getReasonPhrase(200),
+		headers:      headers,
 		body:         "",
 	}
 }
@@ -49,6 +49,22 @@ func new500StatusResponse() Response {
 	res := newResponse()
 	res.SetStatus(500)
 	return res
+}
+
+func (r Response) Headers() headers {
+	return r.headers
+}
+
+func (r Response) StatusCode() uint {
+	return r.statusCode
+}
+
+func (r Response) ReasonPhrase() string {
+	return r.reasonPhrase
+}
+
+func (r Response) Body() string {
+	return r.body
 }
 
 func (r *Response) SetHeader(key string, value string) error {
@@ -64,14 +80,14 @@ func (r *Response) SetHeader(key string, value string) error {
 	key = url.QueryEscape(key)
 	value = url.QueryEscape(value)
 
-	r.Headers[key] = value
+	r.headers[key] = value
 	return nil
 }
 
 func (r *Response) SetHtml(html string) {
 	r.body = html
-	r.Headers["Content-Length"] = strconv.Itoa(len(html))
-	r.Headers["Content-Type"] = "text/html"
+	r.headers["Content-Length"] = strconv.Itoa(len(html))
+	r.headers["Content-Type"] = "text/html"
 }
 
 func (r *Response) SetJson(obj any) error {
@@ -90,8 +106,8 @@ func (r *Response) SetJson(obj any) error {
 	}
 
 	r.body = body
-	r.Headers["Content-Length"] = strconv.Itoa(len(body))
-	r.Headers["Content-Type"] = "application/json"
+	r.headers["Content-Length"] = strconv.Itoa(len(body))
+	r.headers["Content-Type"] = "application/json"
 	return nil
 }
 
@@ -113,8 +129,8 @@ func (r *Response) SetFile(path string) error {
 
 	body := string(fileContents)
 	r.body = body
-	r.Headers["Content-Length"] = strconv.Itoa(len(body))
-	r.Headers["Content-Type"] = contentType
+	r.headers["Content-Length"] = strconv.Itoa(len(body))
+	r.headers["Content-Type"] = contentType
 	return nil
 }
 
@@ -126,12 +142,12 @@ func (r *Response) SetFileWithContentType(path string, contentType string) error
 
 	body := string(fileContents)
 	r.body = body
-	r.Headers["Content-Length"] = strconv.Itoa(len(body))
-	r.Headers["Content-Type"] = contentType
+	r.headers["Content-Length"] = strconv.Itoa(len(body))
+	r.headers["Content-Type"] = contentType
 	return nil
 }
 
 func (r *Response) SetStatus(status uint) {
-	r.StatusCode = status
-	r.ReasonPhrase = getReasonPhrase(status)
+	r.statusCode = status
+	r.reasonPhrase = getReasonPhrase(status)
 }

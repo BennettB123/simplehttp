@@ -26,9 +26,9 @@ func (e *invalidMessage) Error() string {
 	return e.err
 }
 
-type Headers map[string]string
+type headers map[string]string
 
-func (h Headers) String() string {
+func (h headers) String() string {
 	// TODO: HTTP/1.0 RFC says "it is 'good practice' to send General-Header fields first,
 	//   followed by Request-Header or Response-Header fields prior to the Entity-Header fields"
 	ret := ""

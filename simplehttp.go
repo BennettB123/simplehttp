@@ -53,8 +53,8 @@ func (s *Server) handleConnection(conn net.Conn) {
 	response := newResponse()
 
 	// call end-user's callback
-	method := request.Method
-	path := request.getPath()
+	method := request.method
+	path := request.Path()
 	err = s.callbackMap.invokeCallback(method, path, request, &response)
 	if err != nil {
 		fmt.Println(err)

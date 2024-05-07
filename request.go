@@ -9,27 +9,47 @@ import (
 
 type Request struct {
 	rawMessage  string
-	Method      uint
-	Uri         url.URL
-	HttpVersion string
-	Headers     Headers
-	Body        string
+	method      uint
+	uri         url.URL
+	httpVersion string
+	headers     headers
+	body        string
 }
 
 // build string from the parsed message components
 func (r Request) String() string {
 	requestLine := fmt.Sprintf("%s %s %s",
-		getHttpMethodString(r.Method), r.Uri.String(), r.HttpVersion)
+		getHttpMethodString(r.method), r.uri.String(), r.httpVersion)
 
 	return requestLine +
 		lineEnd +
-		r.Headers.String() +
+		r.headers.String() +
 		doubleLineEnd +
-		r.Body
+		r.body
 }
 
-func (r Request) getPath() string {
-	return r.Uri.EscapedPath()
+func (r Request) RawMessage() string {
+	return r.rawMessage
+}
+
+func (r Request) Uri() string {
+	return r.uri.String()
+}
+
+func (r Request) Path() string {
+	return r.uri.EscapedPath()
+}
+
+func (r Request) Method() string {
+	return getHttpMethodString(r.method)
+}
+
+func (r Request) Headers() map[string]string {
+	return r.headers
+}
+
+func (r Request) Body() string {
+	return r.body
 }
 
 func parseRequest(rawMessage string) (Request, error) {
