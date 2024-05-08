@@ -7,15 +7,19 @@ import (
 	"net"
 )
 
+const defaultMaxRequestBytes uint = 1 * 1024 * 1024 // 1 MB
+
 type Server struct {
-	Port        uint16
-	callbackMap callbackMap
+	Port            uint16
+	callbackMap     callbackMap
+	MaxRequestBytes uint
 }
 
 func NewServer(port uint16) Server {
 	return Server{
-		Port:        port,
-		callbackMap: newCallbackMap(),
+		Port:            port,
+		callbackMap:     newCallbackMap(),
+		MaxRequestBytes: defaultMaxRequestBytes,
 	}
 }
 
@@ -41,7 +45,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
 	defer conn.Close()
 
-	request, err := readRequest(conn)
+	request, err := readRequest(conn, s.MaxRequestBytes)
 	if err != nil {
 		fmt.Print("Unable to read message from the connection: ", err)
 		fmt.Print("\n=====================================================\n\n")
@@ -67,12 +71,17 @@ func (s *Server) handleConnection(conn net.Conn) {
 	conn.Write([]byte(response.String()))
 }
 
-func readRequest(conn net.Conn) (Request, error) {
-	// read data in chunks of 1kB
-	tmp := make([]byte, 1024)
+func readRequest(conn net.Conn, maxBytes uint) (Request, error) {
+	// read data in chunks of 1kB or maxBytes if that is smaller
+	var chunkSize uint = 1024
+	if maxBytes < 1024 {
+		chunkSize = maxBytes
+	}
+
+	tmp := make([]byte, chunkSize)
 	data := make([]byte, 0)
 	message := Request{}
-	length := 0
+	var length uint = 0
 
 	for {
 		// TODO: add timeout here and also for the whole loop
@@ -92,13 +101,16 @@ func readRequest(conn net.Conn) (Request, error) {
 		}
 
 		data = append(data, tmp[:n]...)
-		length += n
+		length += uint(n)
 		clear(tmp)
 
 		// check if we have a full http message yet
 		message, err = parseRequest(string(data))
 		if err != nil {
-			// TODO: don't continue forever. Set a maximum message size?
+			if length > maxBytes {
+				return Request{}, fmt.Errorf("incoming request exceeded the maximum request size")
+			}
+
 			incompleteErr := &incompleteMessage{}
 			if errors.As(err, &incompleteErr) {
 				continue
