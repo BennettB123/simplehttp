@@ -52,6 +52,14 @@ func (r Request) Body() string {
 	return r.body
 }
 
+func (r Request) Parameters() map[string][]string {
+	return r.uri.Query()
+}
+
+func (r Request) RawParameters() string {
+	return r.uri.RawQuery
+}
+
 func parseRequest(rawMessage string) (Request, error) {
 	headerEnd := strings.Index(rawMessage, doubleLineEnd)
 	if headerEnd == -1 {
