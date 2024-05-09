@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 )
 
 const defaultMaxRequestBytes uint = 1 * 1024 * 1024 // 1 MB
+const defaultReadTimeoutSeconds int = 60
 
 type Server struct {
-	Port            uint16
-	callbackMap     callbackMap
-	MaxRequestBytes uint
+	Port               uint16
+	callbackMap        callbackMap
+	MaxRequestBytes    uint
+	ReadTimeoutSeconds int
 }
 
 func NewServer(port uint16) Server {
 	return Server{
-		Port:            port,
-		callbackMap:     newCallbackMap(),
-		MaxRequestBytes: defaultMaxRequestBytes,
+		Port:               port,
+		callbackMap:        newCallbackMap(),
+		MaxRequestBytes:    defaultMaxRequestBytes,
+		ReadTimeoutSeconds: defaultReadTimeoutSeconds,
 	}
 }
 
@@ -37,6 +41,9 @@ func (s *Server) Start() error {
 			fmt.Println("Failed to accept incoming connection: ", err)
 		}
 
+		if s.ReadTimeoutSeconds > 0 {
+			conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(s.ReadTimeoutSeconds)))
+		}
 		go s.handleConnection(conn)
 	}
 }
@@ -72,7 +79,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 }
 
 func readRequest(conn net.Conn, maxBytes uint) (Request, error) {
-	// read data in chunks of 1kB or maxBytes if that is smaller
+	// read data in chunks of min(1kB, maxBytes)
 	var chunkSize uint = 1024
 	if maxBytes < 1024 {
 		chunkSize = maxBytes
