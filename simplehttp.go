@@ -91,7 +91,6 @@ func readRequest(conn net.Conn, maxBytes uint) (Request, error) {
 	var length uint = 0
 
 	for {
-		// TODO: add timeout here and also for the whole loop
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
