@@ -9,8 +9,16 @@ import (
 
 const PORT uint16 = 3030
 
+// implement basic logger that writes to the console
+type ConsoleLogger struct{}
+
+func (ConsoleLogger) LogMessage(message string) {
+	fmt.Println(message)
+}
+
 func main() {
 	server := simplehttp.NewServer(PORT)
+	server.Logger = ConsoleLogger{}
 
 	server.Get("/", func(req simplehttp.Request, res *simplehttp.Response) error {
 		fmt.Println("we're in the GET / callback!")

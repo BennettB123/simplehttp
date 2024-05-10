@@ -16,6 +16,7 @@ type Server struct {
 	callbackMap        callbackMap
 	MaxRequestBytes    uint
 	ReadTimeoutSeconds int
+	Logger             Logger
 }
 
 func NewServer(port uint16) Server {
@@ -24,21 +25,22 @@ func NewServer(port uint16) Server {
 		callbackMap:        newCallbackMap(),
 		MaxRequestBytes:    defaultMaxRequestBytes,
 		ReadTimeoutSeconds: defaultReadTimeoutSeconds,
+		Logger:             nilLogger{},
 	}
 }
 
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp4", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
-		return fmt.Errorf("failed to open tcp listener: %s", err)
+		return fmt.Errorf("failed to open tcp listener: %v", err)
 	}
 
-	fmt.Println("Listening on port", s.Port)
+	s.Logger.LogMessage(fmt.Sprintf("Listening on port %d", s.Port))
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Failed to accept incoming connection: ", err)
+			s.Logger.LogMessage(fmt.Sprintf("Failed to accept incoming connection: %v", err))
 		}
 
 		if s.ReadTimeoutSeconds > 0 {
@@ -49,17 +51,20 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	fmt.Println("============= Talking to", conn.RemoteAddr(), "=============")
+	s.Logger.LogMessage(fmt.Sprintf("Connected to remote address %s", conn.RemoteAddr()))
 	defer conn.Close()
 
 	request, err := readRequest(conn, s.MaxRequestBytes)
 	if err != nil {
-		fmt.Print("Unable to read message from the connection: ", err)
-		fmt.Print("\n=====================================================\n\n")
+		s.Logger.LogMessage(fmt.Sprintf("Unable to read message from the connection: %v", err))
+		s.Logger.LogMessage(fmt.Sprintf("Disconnecting from remote address %s", conn.RemoteAddr()))
 		return
 	}
 
-	fmt.Print(request)
+	s.Logger.LogMessage(fmt.Sprintf("Request from %s:", conn.RemoteAddr()))
+	s.Logger.LogMessage("<<<<<<<<")
+	s.Logger.LogMessage(request.rawMessage)
+	s.Logger.LogMessage("<<<<<<<<")
 
 	response := newResponse()
 
@@ -68,14 +73,21 @@ func (s *Server) handleConnection(conn net.Conn) {
 	path := request.Path()
 	err = s.callbackMap.invokeCallback(method, path, request, &response)
 	if err != nil {
-		fmt.Println(err)
+		s.Logger.LogMessage(err.Error())
 		errorResponse := new500StatusResponse()
 		conn.Write([]byte(errorResponse.String()))
+		s.Logger.LogMessage(fmt.Sprintf("Disconnecting from remote address %s", conn.RemoteAddr()))
 		return
 	}
 
 	// send a response
+	s.Logger.LogMessage(fmt.Sprintf("Sending request to %s:", conn.RemoteAddr()))
+	s.Logger.LogMessage(">>>>>>>>")
+	s.Logger.LogMessage(response.String())
+	s.Logger.LogMessage(">>>>>>>>")
 	conn.Write([]byte(response.String()))
+
+	s.Logger.LogMessage(fmt.Sprintf("Disconnecting from remote address %s", conn.RemoteAddr()))
 }
 
 func readRequest(conn net.Conn, maxBytes uint) (Request, error) {
