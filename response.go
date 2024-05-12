@@ -71,10 +71,9 @@ func (r *Response) SetHeader(key string, value string) error {
 	key = strings.TrimSpace(key)
 	value = strings.TrimSpace(value)
 	colonInKey := strings.Index(key, ":")
-	colonInValue := strings.Index(value, ":")
 
-	if colonInKey > -1 || colonInValue > -1 {
-		return fmt.Errorf("header field or value cannot contain a colon")
+	if colonInKey > -1 {
+		return fmt.Errorf("header key cannot contain a colon")
 	}
 
 	key = url.QueryEscape(key)
