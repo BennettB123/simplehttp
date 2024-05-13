@@ -5,6 +5,37 @@ import (
 	"testing"
 )
 
+func TestRequest_Parameters(t *testing.T) {
+	rawParams := "key1=val1&key2=val2"
+	uri, _ := url.ParseRequestURI("/index.html?" + rawParams)
+
+	req := Request{}
+	req.uri = *uri
+
+	params := req.Parameters()
+
+	if len(params["key1"]) != 1 || params["key1"][0] != "val1" {
+		t.Fatalf("invalid parameter found. Expected [key1]=[val1] | Actual %v", params["key1"])
+	}
+
+	if len(params["key2"]) != 1 || params["key2"][0] != "val2" {
+		t.Fatalf("invalid parameter found. Expected [key2]=[val2] | Actual %v", params["key2"])
+	}
+}
+
+func TestRequest_RawParameters(t *testing.T) {
+	rawParams := "key1=val1&key2=val2"
+	uri, _ := url.ParseRequestURI("/index.html?" + rawParams)
+
+	req := Request{}
+	req.uri = *uri
+
+	if req.RawParameters() != rawParams {
+		t.Fatalf("invalid raw parameters. Expected '%s' | Actual %s",
+			rawParams, req.RawParameters())
+	}
+}
+
 func TestParseRequestLine(t *testing.T) {
 	method, uri, version, err := parseRequestLine("GET /index.html HTTP/1.0")
 
