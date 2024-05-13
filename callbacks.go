@@ -3,78 +3,78 @@ package simplehttp
 import "fmt"
 
 // Potential errors when dealing with callbacks
-type CallbackRuntimeError struct {
+type callbackRuntimeError struct {
 	innerErr   error
 	HttpMethod uint
 	Path       string
 }
 
-func (err CallbackRuntimeError) Error() string {
+func (err callbackRuntimeError) Error() string {
 	return fmt.Sprintf("an error occurred while invoking a callback (%s with path '%s'): %s",
 		getHttpMethodString(err.HttpMethod), err.Path, err.innerErr.Error())
 }
 
 func newCallbackRuntimeError(err error) error {
-	return CallbackRuntimeError{
+	return callbackRuntimeError{
 		innerErr: err,
 	}
 }
 
-type CallbackAlreadyRegisteredError struct {
+type callbackAlreadyRegisteredError struct {
 	HttpMethod uint
 	Path       string
 }
 
-func (err CallbackAlreadyRegisteredError) Error() string {
+func (err callbackAlreadyRegisteredError) Error() string {
 	return fmt.Sprintf("%s callback with path '%s' has already been registered",
 		getHttpMethodString(err.HttpMethod), err.Path)
 }
 
 func newCallbackAlreadyRegisteredError(httpMethod uint, path string) error {
-	return CallbackAlreadyRegisteredError{
+	return callbackAlreadyRegisteredError{
 		httpMethod,
 		path,
 	}
 }
 
-type CallbackNotRegisteredError struct {
+type callbackNotRegisteredError struct {
 	httpMethod uint
 	Path       string
 }
 
-func (err CallbackNotRegisteredError) Error() string {
+func (err callbackNotRegisteredError) Error() string {
 	return fmt.Sprintf("%s callback with path '%s' has not been registered",
 		getHttpMethodString(err.httpMethod), err.Path)
 }
 
 func newCallbackNotRegisteredError(httpMethod uint, path string) error {
-	return CallbackNotRegisteredError{
+	return callbackNotRegisteredError{
 		httpMethod,
 		path,
 	}
 }
 
-type CallbackFunc = func(Request, *Response) error
+type callbackFunc = func(Request, *Response) error
 
 type callbackMap struct {
-	callbacks map[uint]map[string]CallbackFunc
+	callbacks map[uint]map[string]callbackFunc
 	// ex. [GET]["/"] = func(...)
 	// ex. [GET]["/login"] = func(...)
 	// ex. [POST]["/login"] = func(...)
 }
 
 func newCallbackMap() callbackMap {
-	callbacks := make(map[uint]map[string]CallbackFunc)
-	callbacks[get] = make(map[string]CallbackFunc)
-	callbacks[post] = make(map[string]CallbackFunc)
-	callbacks[put] = make(map[string]CallbackFunc)
-	callbacks[delete] = make(map[string]CallbackFunc)
+	callbacks := make(map[uint]map[string]callbackFunc)
+	callbacks[get] = make(map[string]callbackFunc)
+	callbacks[post] = make(map[string]callbackFunc)
+	callbacks[put] = make(map[string]callbackFunc)
+	callbacks[delete] = make(map[string]callbackFunc)
 	return callbackMap{
 		callbacks,
 	}
 }
 
-func (cbm *callbackMap) registerCallback(method uint, path string, callback CallbackFunc) error {
+func (cbm *callbackMap) registerCallback(method uint, path string, callback callbackFunc) error {
 	_, exists := cbm.callbacks[method][path]
 	if exists {
 		return newCallbackAlreadyRegisteredError(method, path)

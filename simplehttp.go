@@ -29,6 +29,22 @@ func NewServer(port uint16) Server {
 	}
 }
 
+func (s *Server) Get(path string, callback callbackFunc) error {
+	return s.callbackMap.registerCallback(get, path, callback)
+}
+
+func (s *Server) Post(path string, callback callbackFunc) error {
+	return s.callbackMap.registerCallback(post, path, callback)
+}
+
+func (s *Server) Put(path string, callback callbackFunc) error {
+	return s.callbackMap.registerCallback(put, path, callback)
+}
+
+func (s *Server) Delete(path string, callback callbackFunc) error {
+	return s.callbackMap.registerCallback(delete, path, callback)
+}
+
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp4", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
@@ -141,21 +157,4 @@ func readRequest(conn net.Conn, maxBytes uint) (Request, error) {
 	}
 
 	return message, nil
-}
-
-// Public methods to register callbacks
-func (s *Server) Get(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(get, path, callback)
-}
-
-func (s *Server) Post(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(post, path, callback)
-}
-
-func (s *Server) Put(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(put, path, callback)
-}
-
-func (s *Server) Delete(path string, callback CallbackFunc) error {
-	return s.callbackMap.registerCallback(delete, path, callback)
 }

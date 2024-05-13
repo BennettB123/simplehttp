@@ -21,10 +21,8 @@ func (r Request) String() string {
 	requestLine := fmt.Sprintf("%s %s %s",
 		getHttpMethodString(r.method), r.uri.String(), r.httpVersion)
 
-	return requestLine +
-		lineEnd +
-		r.headers.String() +
-		doubleLineEnd +
+	return requestLine + lineEnd +
+		r.headers.String() + doubleLineEnd +
 		r.body
 }
 

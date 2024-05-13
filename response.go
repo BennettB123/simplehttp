@@ -22,10 +22,9 @@ type Response struct {
 
 func (r Response) String() string {
 	statusLine := fmt.Sprintf("%s %d %s", r.httpVersion, r.statusCode, r.reasonPhrase)
-	return statusLine +
-		lineEnd +
-		r.headers.String() +
-		doubleLineEnd +
+
+	return statusLine + lineEnd +
+		r.headers.String() + doubleLineEnd +
 		r.body
 }
 
