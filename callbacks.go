@@ -54,27 +54,32 @@ func newCallbackNotRegisteredError(httpMethod uint, path string) error {
 	}
 }
 
-type callbackFunc = func(Request, *Response) error
+// CallbackFunc is the function signature that represents a callback to be
+// registered on the [Server]. The [Request] parameter can be used to view
+// properties on the incoming request. The [*Response] parameter can be used to modify the
+// response that will be returned. If an error is returned in a callback, the server
+// will automatically return a 500 Internal Server Error response.
+type CallbackFunc = func(Request, *Response) error
 
 type callbackMap struct {
-	callbacks map[uint]map[string]callbackFunc
+	callbacks map[uint]map[string]CallbackFunc
 	// ex. [GET]["/"] = func(...)
 	// ex. [GET]["/login"] = func(...)
 	// ex. [POST]["/login"] = func(...)
 }
 
 func newCallbackMap() callbackMap {
-	callbacks := make(map[uint]map[string]callbackFunc)
-	callbacks[get] = make(map[string]callbackFunc)
-	callbacks[post] = make(map[string]callbackFunc)
-	callbacks[put] = make(map[string]callbackFunc)
-	callbacks[delete] = make(map[string]callbackFunc)
+	callbacks := make(map[uint]map[string]CallbackFunc)
+	callbacks[get] = make(map[string]CallbackFunc)
+	callbacks[post] = make(map[string]CallbackFunc)
+	callbacks[put] = make(map[string]CallbackFunc)
+	callbacks[delete] = make(map[string]CallbackFunc)
 	return callbackMap{
 		callbacks,
 	}
 }
 
-func (cbm *callbackMap) registerCallback(method uint, path string, callback callbackFunc) error {
+func (cbm *callbackMap) registerCallback(method uint, path string, callback CallbackFunc) error {
 	_, exists := cbm.callbacks[method][path]
 	if exists {
 		return newCallbackAlreadyRegisteredError(method, path)
