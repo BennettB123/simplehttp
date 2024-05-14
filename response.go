@@ -54,6 +54,12 @@ func new500StatusResponse() Response {
 	return res
 }
 
+func new404StatusResponse() Response {
+	res := newResponse()
+	res.SetStatus(404)
+	return res
+}
+
 // Returns the response's headers.
 func (r Response) Headers() map[string]string {
 	return r.headers

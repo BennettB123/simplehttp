@@ -130,8 +130,15 @@ func (s *Server) handleConnection(conn net.Conn) {
 	err = s.callbackMap.invokeCallback(method, path, request, &response)
 	if err != nil {
 		s.Logger.LogMessage(err.Error())
-		errorResponse := new500StatusResponse()
-		conn.Write([]byte(errorResponse.String()))
+		var errorRes Response
+
+		if errors.As(err, &callbackNotRegisteredError{}) {
+			errorRes = new404StatusResponse()
+		} else {
+			errorRes = new500StatusResponse()
+		}
+
+		conn.Write([]byte(errorRes.String()))
 		s.Logger.LogMessage(fmt.Sprintf("Disconnecting from remote address %s", conn.RemoteAddr()))
 		return
 	}
