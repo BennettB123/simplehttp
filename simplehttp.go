@@ -35,7 +35,7 @@ type Server struct {
 	// request before closing the connection.
 	ReadTimeoutSeconds int
 	// Logger is a user-implementation of the [Logger] interface that the
-	// server will send diagnostic messages about incoming requests and
+	// server will send messages about incoming requests and
 	// outgoing responses. If a Logger is not provided, the server will
 	// discard all log messages.
 	Logger      Logger
