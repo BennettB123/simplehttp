@@ -9,7 +9,7 @@ Full documentation can be found on go's official documentation site at
 https://pkg.go.dev/github.com/BennettB123/simplehttp.
 
 ### Features
-✅ custom routing in the form of registering custom callbacks to be invoked when specific HTTP methods/paths are requested. <br>
+✅ custom routing in the form of registering callback methods to be invoked when specific HTTP methods/paths are requested. <br>
 ✅ handling multiple concurrent requests in parallel. <br>
 ✅ methods to view information about incoming HTTP requests. <br>
 ✅ convienent methods to modify HTTP responses. <br>
